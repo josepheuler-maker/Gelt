@@ -8,6 +8,7 @@
 
 /* Begin PBXFileReference section */
 		12C47E4B2F8D8974007C5222 /* Gelt.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Gelt.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		12C47EA82F904AD5007C5222 /* Gelt MacOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Gelt MacOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -20,6 +21,13 @@
 
 /* Begin PBXFrameworksBuildPhase section */
 		12C47E482F8D8974007C5222 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		12C47EA52F904AD5007C5222 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -41,6 +49,7 @@
 			isa = PBXGroup;
 			children = (
 				12C47E4B2F8D8974007C5222 /* Gelt.app */,
+				12C47EA82F904AD5007C5222 /* Gelt MacOS.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -70,6 +79,25 @@
 			productReference = 12C47E4B2F8D8974007C5222 /* Gelt.app */;
 			productType = "com.apple.product-type.application";
 		};
+		12C47EA72F904AD5007C5222 /* Gelt MacOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 12C47EB02F904AD7007C5222 /* Build configuration list for PBXNativeTarget "Gelt MacOS" */;
+			buildPhases = (
+				12C47EA42F904AD5007C5222 /* Sources */,
+				12C47EA52F904AD5007C5222 /* Frameworks */,
+				12C47EA62F904AD5007C5222 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "Gelt MacOS";
+			packageProductDependencies = (
+			);
+			productName = "Gelt MacOS";
+			productReference = 12C47EA82F904AD5007C5222 /* Gelt MacOS.app */;
+			productType = "com.apple.product-type.application";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -81,6 +109,9 @@
 				LastUpgradeCheck = 2630;
 				TargetAttributes = {
 					12C47E4A2F8D8974007C5222 = {
+						CreatedOnToolsVersion = 26.3;
+					};
+					12C47EA72F904AD5007C5222 = {
 						CreatedOnToolsVersion = 26.3;
 					};
 				};
@@ -100,6 +131,7 @@
 			projectRoot = "";
 			targets = (
 				12C47E4A2F8D8974007C5222 /* Gelt */,
+				12C47EA72F904AD5007C5222 /* Gelt MacOS */,
 			);
 		};
 /* End PBXProject section */
@@ -112,10 +144,24 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		12C47EA62F904AD5007C5222 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		12C47E472F8D8974007C5222 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		12C47EA42F904AD5007C5222 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -329,6 +375,74 @@
 			};
 			name = Release;
 		};
+		12C47EB12F904AD7007C5222 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = V4MX85Z3AG;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.1;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "Jew-App.Gelt-MacOS";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		12C47EB22F904AD7007C5222 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = V4MX85Z3AG;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.1;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "Jew-App.Gelt-MacOS";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -346,6 +460,15 @@
 			buildConfigurations = (
 				12C47E572F8D8974007C5222 /* Debug */,
 				12C47E582F8D8974007C5222 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		12C47EB02F904AD7007C5222 /* Build configuration list for PBXNativeTarget "Gelt MacOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				12C47EB12F904AD7007C5222 /* Debug */,
+				12C47EB22F904AD7007C5222 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

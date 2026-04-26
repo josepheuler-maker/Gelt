@@ -1,0 +1,38 @@
+name: ✨ Feature Request
+description: Got an idea? Drop it here.
+title: "[Feature] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What do you want?
+      placeholder: "Describe the feature"
+    validations:
+      required: true
+
+  - type: textarea
+    id: why
+    attributes:
+      label: Why?
+      placeholder: "What problem does it solve?"
+    validations:
+      required: false
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Dashboard
+        - Accounts
+        - Loans
+        - Transactions
+        - Settings
+        - Widgets
+        - AI / Intelligence
+        - Bank Connection
+        - Design / UI
+        - Other
+    validations:
+      required: true

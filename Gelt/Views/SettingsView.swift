@@ -6,6 +6,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @EnvironmentObject var store: DataStore
+    @EnvironmentObject var auth: AuthService
     @State private var showAddTx = false
     @State private var showAddRec = false
     @State private var showAddCat = false
@@ -13,6 +14,8 @@ struct SettingsView: View {
     @State private var showCSV = false
     @State private var showBalanceEdit = false
     @State private var newBalance = ""
+    @State private var showSetPIN = false
+    @State private var newPIN = ""
     
     @State private var expandedSections: Set<String> = []
     
@@ -30,6 +33,115 @@ struct SettingsView: View {
                         .foregroundColor(Theme.cream)
                 }
                 .padding(.bottom, 8)
+                
+                // ─── Security ─────────────────────
+                GeltCard {
+                    VStack(alignment: .leading, spacing: 14) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "lock.shield.fill")
+                                .foregroundColor(Theme.gold)
+                                .font(.system(size: 14))
+                            Text("Security")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(Theme.cream)
+                        }
+                        
+                        // Auth toggle
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(auth.biometricType == .none ? "App Lock" : auth.biometricType.label)
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundColor(Theme.cream)
+                                DimText(text: "Require authentication on launch")
+                            }
+                            Spacer()
+                            Toggle("", isOn: Binding(
+                                get: { auth.authEnabled },
+                                set: { auth.authEnabled = $0 }
+                            ))
+                            .tint(Theme.gold)
+                            .labelsHidden()
+                        }
+                        
+                        Divider().background(Theme.cardBorder)
+                        
+                        // PIN
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("PIN Fallback")
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundColor(Theme.cream)
+                                DimText(text: auth.hasPIN ? "PIN is set" : "No PIN configured")
+                            }
+                            Spacer()
+                            if auth.hasPIN {
+                                Button {
+                                    auth.removePIN()
+                                    Haptics.tap()
+                                } label: {
+                                    Text("Remove")
+                                        .font(.system(size: 12, weight: .semibold))
+                                        .foregroundColor(Theme.red)
+                                }
+                            } else {
+                                Button {
+                                    showSetPIN = true
+                                } label: {
+                                    Text("Set PIN")
+                                        .font(.system(size: 12, weight: .semibold))
+                                        .foregroundColor(Theme.gold)
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 6)
+                                        .background(Theme.goldDim)
+                                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                                }
+                            }
+                        }
+                        
+                        Divider().background(Theme.cardBorder)
+                        
+                        // Auto-lock timing
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Auto-lock")
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundColor(Theme.cream)
+                                DimText(text: "Lock after \(auth.autoLockSeconds)s in background")
+                            }
+                            Spacer()
+                            Picker("", selection: Binding(
+                                get: { auth.autoLockSeconds },
+                                set: { auth.autoLockSeconds = $0 }
+                            )) {
+                                Text("30s").tag(30)
+                                Text("1m").tag(60)
+                                Text("5m").tag(300)
+                                Text("15m").tag(900)
+                            }
+                            .pickerStyle(.menu)
+                            .tint(Theme.gold)
+                        }
+                        
+                        // Lock now button
+                        if auth.isUnlocked && auth.authEnabled {
+                            Button {
+                                Haptics.tap()
+                                auth.lock()
+                            } label: {
+                                HStack {
+                                    Image(systemName: "lock.fill")
+                                    Text("Lock Now")
+                                }
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(Theme.gold)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 10)
+                                .background(Theme.goldDim)
+                                .clipShape(RoundedRectangle(cornerRadius: 10))
+                            }
+                        }
+                    }
+                }
                 
                 // ─── Quick Actions ────────────────
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
@@ -232,15 +344,88 @@ struct SettingsView: View {
                     }
                 }
                 
+                // ─── About & Bug Report ──────────
+                GeltCard {
+                    VStack(spacing: 14) {
+                        // App info
+                        HStack(spacing: 12) {
+                            Text("₪")
+                                .font(.custom("Cormorant Garamond", size: 28).weight(.bold))
+                                .foregroundColor(Theme.gold)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Gelt")
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundColor(Theme.cream)
+                                DimText(text: "v\(Theme.version) · Black & Gold Edition")
+                            }
+                            Spacer()
+                        }
+                        
+                        Divider().background(Theme.cardBorder)
+                        
+                        // Bug report
+                        Button {
+                            if let url = URL(string: Theme.bugReportURL) {
+                                #if os(iOS)
+                                UIApplication.shared.open(url)
+                                #elseif os(macOS)
+                                NSWorkspace.shared.open(url)
+                                #endif
+                            }
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "ladybug.fill")
+                                    .font(.system(size: 13))
+                                Text("Report a Bug")
+                                    .font(.system(size: 13, weight: .semibold))
+                                Spacer()
+                                Image(systemName: "arrow.up.right")
+                                    .font(.system(size: 10))
+                            }
+                            .foregroundColor(Theme.red)
+                            .padding(.vertical, 10)
+                            .padding(.horizontal, 14)
+                            .background(Theme.redDim)
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                        }
+                        
+                        // Feature request
+                        Button {
+                            let frURL = Theme.bugReportURL.replacingOccurrences(of: "bug_report", with: "feature_request")
+                            if let url = URL(string: frURL) {
+                                #if os(iOS)
+                                UIApplication.shared.open(url)
+                                #elseif os(macOS)
+                                NSWorkspace.shared.open(url)
+                                #endif
+                            }
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "sparkles")
+                                    .font(.system(size: 13))
+                                Text("Request a Feature")
+                                    .font(.system(size: 13, weight: .semibold))
+                                Spacer()
+                                Image(systemName: "arrow.up.right")
+                                    .font(.system(size: 10))
+                            }
+                            .foregroundColor(Theme.gold)
+                            .padding(.vertical, 10)
+                            .padding(.horizontal, 14)
+                            .background(Theme.goldDim)
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                        }
+                    }
+                }
+                
                 // ─── Footer ──────────────────────
                 VStack(spacing: 4) {
-                    Text("₪ Gelt")
-                        .font(.custom("Cormorant Garamond", size: 16).weight(.semibold))
-                        .foregroundColor(Theme.gold)
-                    DimText(text: "Black & Gold Edition")
+                    Image(systemName: "star.of.david")
+                        .font(.system(size: 12))
+                        .foregroundColor(Theme.gold.opacity(0.06))
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 28)
+                .padding(.vertical, 16)
                 
                 Spacer(minLength: 40)
             }
@@ -261,6 +446,13 @@ struct SettingsView: View {
                     showBalanceEdit = false
                 }
             )
+        }
+        .sheet(isPresented: $showSetPIN) {
+            SetPINSheet(onSave: { pin in
+                auth.setPIN(pin)
+                showSetPIN = false
+                Haptics.success()
+            })
         }
     }
     

@@ -5,6 +5,13 @@ import SwiftUI
 // ═══════════════════════════════════════════════════
 
 struct Theme {
+    // App Version
+    static let version = "1.0.0-beta.4"
+    static let build = "4"
+    
+    // Bug report URL (opens GitHub issue with prefilled template)
+    static let bugReportURL = "https://github.com/josepheuler-maker/Gelt/issues/new?template=bug_report.yml"
+    
     // Backgrounds
     static let bg = Color(hex: "050508")
     static let bg2 = Color(hex: "0c0c10")

@@ -1,1 +1,95 @@
+name: 🐛 Bug Report
+description: Something broke. Let's fix it.
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. Fill out what you can — the more detail, the faster the fix.
+
   - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - iPhone
+        - iPad
+        - Mac
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: What area?
+      options:
+        - Home / Dashboard
+        - Accounts / Net Worth
+        - Loans
+        - Recurring / Bills
+        - Transactions
+        - CSV Import
+        - Settings
+        - Security / Face ID / PIN
+        - Categories
+        - Merchants
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options:
+        - 💀 Crash — app dies
+        - 🔴 Broken — feature doesn't work
+        - 🟡 Annoying — works but wrong
+        - 🟢 Cosmetic — looks off
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      placeholder: "I tapped X and Y happened instead of Z"
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Go to Settings
+        2. Tap "Add Recurring"
+        3. Enter amount and tap Save
+        4. Nothing happens
+    validations:
+      required: false
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What should have happened?
+      placeholder: "The recurring item should appear in the list"
+    validations:
+      required: false
+
+  - type: textarea
+    id: screenshot
+    attributes:
+      label: Screenshot / screen recording
+      placeholder: "Drag and drop an image or paste a link"
+    validations:
+      required: false
+
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      placeholder: "e.g. 1.0.0-beta.4"
+    validations:
+      required: false

@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 
 // ═══════════════════════════════════════════════════
 //  GELT — Reusable Components
@@ -10,13 +11,15 @@ struct GoldBar: View {
     let max: Double
     var height: CGFloat = 4
     
+    private var over: Bool { value > max && max > 0 }
+    
     var body: some View {
         GeometryReader { geo in
             ZStack(alignment: .leading) {
                 RoundedRectangle(cornerRadius: height)
                     .fill(Theme.faint.opacity(0.3))
                 RoundedRectangle(cornerRadius: height)
-                    .fill(value > max && max > 0 ? AnyShapeStyle(Theme.red) : AnyShapeStyle(LinearGradient(colors: [Theme.gold, Theme.gold.opacity(0.8)], startPoint: .leading, endPoint: .trailing)))
+                    .fill(over ? AnyShapeStyle(Theme.red) : AnyShapeStyle(LinearGradient(colors: [Theme.gold, Theme.gold.opacity(0.8)], startPoint: .leading, endPoint: .trailing)))
                     .frame(width: max > 0 ? geo.size.width * min(1, CGFloat(value / max)) : 0)
                     .animation(.spring(response: 0.8, dampingFraction: 0.8), value: value)
             }
@@ -33,6 +36,7 @@ struct GeltCard<Content: View>: View {
     var body: some View {
         content
             .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
             .background(Theme.card)
             .clipShape(RoundedRectangle(cornerRadius: 16))
             .overlay(
@@ -116,6 +120,7 @@ struct SparkBars: View {
             }
         }
         .frame(height: height)
+        .frame(maxWidth: .infinity)
     }
 }
 
@@ -129,8 +134,10 @@ struct StatTile: View {
         VStack(alignment: .leading, spacing: 3) {
             SectionLabel(text: label)
             Text(value)
-                .font(.system(size: 14, weight: .bold, design: .monospaced))
+                .font(.system(size: 13, weight: .bold))
                 .foregroundColor(color)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
         }
     }
 }
@@ -186,13 +193,12 @@ struct AnimatedMoney: View {
     let amount: Double
     let color: Color
     var size: CGFloat = 38
-    var serif: Bool = true
     
     var body: some View {
         Text(amount.money)
-            .font(serif ? .custom("Cormorant Garamond", size: size).weight(.bold) : .system(size: size, weight: .bold, design: .monospaced))
+            .font(.system(size: size, weight: .bold, design: .serif))
             .foregroundColor(color)
-            .contentTransition(.numericText())
-            .animation(.spring(response: 0.5), value: amount)
+            .lineLimit(1)
+            .minimumScaleFactor(0.6)
     }
 }

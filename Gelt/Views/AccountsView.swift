@@ -173,60 +173,6 @@ struct AccountsView: View {
     }
 }
 
-// ─── Edit Balance Sheet ─────────────────────────────
-struct EditBalanceSheet: View {
-    let accountID: UUID?
-    let initialBalance: String
-    let onSave: (String) -> Void
-    @Environment(\.dismiss) var dismiss
-    @State private var balanceText = ""
-    
-    var body: some View {
-        NavigationStack {
-            VStack(spacing: 20) {
-                Text("Update Balance")
-                    .font(.custom("Cormorant Garamond", size: 24).weight(.bold))
-                    .foregroundColor(Theme.cream)
-                
-                TextField("0.00", text: $balanceText)
-                    #if os(iOS)
-                    .keyboardType(.decimalPad)
-                    #endif
-                    .font(.system(size: 32, weight: .bold, design: .monospaced))
-                    .foregroundColor(Theme.gold)
-                    .multilineTextAlignment(.center)
-                    .padding(20)
-                    .background(Theme.bg2)
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                    .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.gold.opacity(0.3), lineWidth: 1))
-                
-                Button("Save") {
-                    onSave(balanceText)
-                    dismiss()
-                }
-                .buttonStyle(GoldButtonStyle())
-                
-                Spacer()
-            }
-            .padding(24)
-            .background(Theme.bg)
-            .onAppear { balanceText = initialBalance }
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                        .foregroundColor(Theme.dim)
-                }
-            }
-        }
-        #if os(iOS)
-        .presentationDetents([.fraction(0.4)])
-        .presentationDragIndicator(.visible)
-        #else
-        .frame(minWidth: 350, minHeight: 250)
-        #endif
-    }
-}
-
 // ─── Loan Card ──────────────────────────────────────
 struct LoanCard: View {
     @EnvironmentObject var store: DataStore

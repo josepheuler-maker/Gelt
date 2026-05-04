@@ -1,39 +1,34 @@
 import SwiftUI
-#if os(iOS)
-import UIKit
-#endif
+import Combine
 
 // ═══════════════════════════════════════════════════
 //  G E L T  ₪  — Black & Gold Edition
-//
-//  Adaptive: iPhone tabs, iPad/Mac sidebar
 // ═══════════════════════════════════════════════════
 
 @main
 struct GeltApp: App {
     @StateObject private var store = DataStore()
+    @StateObject private var auth = AuthService()
+    @Environment(\.scenePhase) private var scenePhase
     
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            RootView()
                 .environmentObject(store)
+                .environmentObject(auth)
                 .preferredColorScheme(.dark)
-                .frame(minWidth: 800, minHeight: 600)
-            #if os(macOS)
                 .background(Theme.bg)
-            #endif
         }
         #if os(macOS)
         .defaultSize(width: 1000, height: 750)
-        .commands {
-            CommandGroup(replacing: .newItem) {
-                Button("New Transaction") {
-                    NotificationCenter.default.post(name: .geltNewTransaction, object: nil)
-                }
-                .keyboardShortcut("n", modifiers: .command)
+        #endif
+        .onChange(of: scenePhase) { _, phase in
+            switch phase {
+            case .background: auth.appWillResignActive()
+            case .active: auth.appDidBecomeActive()
+            default: break
             }
         }
-        #endif
     }
 }
 
@@ -42,55 +37,224 @@ extension Notification.Name {
     static let geltNewTransaction = Notification.Name("geltNewTransaction")
 }
 
-// ─── Adaptive Content View ──────────────────────────
-struct ContentView: View {
-    @Environment(\.horizontalSizeClass) var sizeClass
+// ═══ Root View — Lock Screen Gate ═══════════════════
+
+struct RootView: View {
+    @EnvironmentObject var auth: AuthService
     
     var body: some View {
-        Group {
-            #if os(macOS)
-            SidebarLayout()
-            #else
-            if sizeClass == .regular {
-                // iPad
-                SidebarLayout()
-            } else {
-                // iPhone
-                PhoneTabLayout()
+        #if os(macOS)
+        // macOS: skip lock screen, go straight to app
+        ContentView()
+            .frame(minWidth: 800, minHeight: 600)
+        #else
+        ZStack {
+            ContentView()
+                .opacity(auth.isUnlocked ? 1 : 0)
+                .allowsHitTesting(auth.isUnlocked)
+            
+            if !auth.isUnlocked {
+                LockScreenView()
+                    .transition(.opacity)
             }
-            #endif
         }
-        .onAppear { configureAppearance() }
-    }
-    
-    private func configureAppearance() {
-        #if os(iOS)
-        let tabAppearance = UITabBarAppearance()
-        tabAppearance.configureWithOpaqueBackground()
-        tabAppearance.backgroundColor = UIColor(Theme.bg)
-        tabAppearance.stackedLayoutAppearance.normal.iconColor = UIColor(Theme.faint)
-        tabAppearance.stackedLayoutAppearance.normal.titleTextAttributes = [.foregroundColor: UIColor(Theme.faint)]
-        tabAppearance.stackedLayoutAppearance.selected.iconColor = UIColor(Theme.gold)
-        tabAppearance.stackedLayoutAppearance.selected.titleTextAttributes = [.foregroundColor: UIColor(Theme.gold)]
-        UITabBar.appearance().standardAppearance = tabAppearance
-        UITabBar.appearance().scrollEdgeAppearance = tabAppearance
-        
-        let navAppearance = UINavigationBarAppearance()
-        navAppearance.configureWithOpaqueBackground()
-        navAppearance.backgroundColor = UIColor(Theme.card)
-        navAppearance.titleTextAttributes = [.foregroundColor: UIColor(Theme.cream)]
-        UINavigationBar.appearance().standardAppearance = navAppearance
-        UINavigationBar.appearance().scrollEdgeAppearance = navAppearance
+        .animation(.easeInOut(duration: 0.4), value: auth.isUnlocked)
+        .onAppear { auth.authenticate() }
         #endif
     }
 }
 
-// ═══════════════════════════════════════════════════
-//  iPhone — Tab Bar
-// ═══════════════════════════════════════════════════
+// ═══ Lock Screen ════════════════════════════════════
 
-struct PhoneTabLayout: View {
+struct LockScreenView: View {
+    @EnvironmentObject var auth: AuthService
+    @State private var pinInput = ""
+    @State private var shake = false
+    @State private var showingPIN = false
+    
+    var body: some View {
+        ZStack {
+            Theme.bg.ignoresSafeArea()
+            
+            VStack(spacing: 0) {
+                Spacer()
+                
+                Text("₪")
+                    .font(.system(size: 64, weight: .bold, design: .serif))
+                    .foregroundColor(Theme.gold)
+                
+                Text("GELT")
+                    .font(.system(size: 11, weight: .bold))
+                    .tracking(6)
+                    .foregroundColor(Theme.faint)
+                    .padding(.top, 8)
+                
+                Spacer().frame(height: 40)
+                
+                if showingPIN || auth.showPINEntry {
+                    pinEntryView
+                } else {
+                    biometricView
+                }
+                
+                Spacer()
+            }
+            .padding(.horizontal, 24)
+        }
+    }
+    
+    private var biometricView: some View {
+        VStack(spacing: 16) {
+            Button { auth.authenticate() } label: {
+                VStack(spacing: 12) {
+                    Image(systemName: auth.biometricType.icon)
+                        .font(.system(size: 32))
+                        .foregroundColor(Theme.gold)
+                    Text("Tap to unlock")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(Theme.dim)
+                }
+                .frame(width: 110, height: 110)
+                .background(Theme.card)
+                .clipShape(RoundedRectangle(cornerRadius: 22))
+                .overlay(RoundedRectangle(cornerRadius: 22).stroke(Theme.gold.opacity(0.2), lineWidth: 1))
+            }
+            
+            if auth.hasPIN {
+                Button { showingPIN = true } label: {
+                    Text("Use PIN instead").font(.system(size: 12)).foregroundColor(Theme.faint)
+                }
+            }
+            
+            if let error = auth.authError {
+                Text(error).font(.system(size: 12)).foregroundColor(Theme.red)
+            }
+        }
+    }
+    
+    private var pinEntryView: some View {
+        VStack(spacing: 20) {
+            Text("Enter PIN")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundColor(Theme.cream)
+            
+            HStack(spacing: 14) {
+                ForEach(0..<4, id: \.self) { i in
+                    Circle()
+                        .fill(i < pinInput.count ? Theme.gold : Theme.cardBorder)
+                        .frame(width: 14, height: 14)
+                }
+            }
+            .modifier(ShakeEffect(shakes: shake ? 2 : 0))
+            
+            if let error = auth.authError {
+                Text(error).font(.system(size: 12)).foregroundColor(Theme.red)
+            }
+            
+            LazyVGrid(columns: Array(repeating: GridItem(.fixed(72), spacing: 16), count: 3), spacing: 12) {
+                ForEach(1...9, id: \.self) { num in
+                    PINPadButton(label: "\(num)") { appendPIN("\(num)") }
+                }
+                PINPadButton(label: "", disabled: true) { }
+                PINPadButton(label: "0") { appendPIN("0") }
+                PINPadButton(label: "⌫", isDelete: true) {
+                    if !pinInput.isEmpty { pinInput.removeLast() }
+                }
+            }
+            
+            if auth.biometricType != .none {
+                Button {
+                    showingPIN = false
+                    pinInput = ""
+                    auth.authenticate()
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: auth.biometricType.icon)
+                        Text("Use \(auth.biometricType.label)")
+                    }
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(Theme.gold)
+                }
+                .padding(.top, 8)
+            }
+        }
+    }
+    
+    private func appendPIN(_ digit: String) {
+        guard pinInput.count < 4 else { return }
+        pinInput += digit
+        Haptics.selection()
+        if pinInput.count == 4 {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                if auth.verifyPIN(pinInput) {
+                    Haptics.success()
+                } else {
+                    Haptics.error()
+                    withAnimation(.default) { shake = true }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                        shake = false
+                        pinInput = ""
+                    }
+                }
+            }
+        }
+    }
+}
+
+struct ShakeEffect: GeometryEffect {
+    var shakes: CGFloat
+    var animatableData: CGFloat {
+        get { shakes }
+        set { shakes = newValue }
+    }
+    func effectValue(size: CGSize) -> ProjectionTransform {
+        ProjectionTransform(CGAffineTransform(translationX: 8 * sin(shakes * .pi * 2), y: 0))
+    }
+}
+
+// ═══ Content View — Platform Adaptive ═══════════════
+
+struct ContentView: View {
+    #if os(iOS)
+    @Environment(\.horizontalSizeClass) var sizeClass
+    #endif
+    
+    var body: some View {
+        Group {
+            #if os(macOS)
+            MacLayout()
+            #else
+            if sizeClass == .regular {
+                // iPad
+                MacLayout()
+            } else {
+                // iPhone
+                PhoneLayout()
+            }
+            #endif
+        }
+    }
+}
+
+// ═══ iPhone — Tab Bar ═══════════════════════════════
+
+struct PhoneLayout: View {
     @State private var selectedTab = 0
+    
+    init() {
+        #if os(iOS)
+        // Style tab bar
+        let appearance = UITabBarAppearance()
+        appearance.configureWithOpaqueBackground()
+        appearance.backgroundColor = UIColor(Theme.bg)
+        appearance.stackedLayoutAppearance.normal.iconColor = UIColor(Theme.faint)
+        appearance.stackedLayoutAppearance.normal.titleTextAttributes = [.foregroundColor: UIColor(Theme.faint)]
+        appearance.stackedLayoutAppearance.selected.iconColor = UIColor(Theme.gold)
+        appearance.stackedLayoutAppearance.selected.titleTextAttributes = [.foregroundColor: UIColor(Theme.gold)]
+        UITabBar.appearance().standardAppearance = appearance
+        UITabBar.appearance().scrollEdgeAppearance = appearance
+        #endif
+    }
     
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -119,33 +283,24 @@ struct PhoneTabLayout: View {
     }
 }
 
-// ═══════════════════════════════════════════════════
-//  iPad / Mac — Sidebar + Detail
-// ═══════════════════════════════════════════════════
+// ═══ iPad / Mac — Sidebar ══════════════════════════
 
 enum SidebarItem: String, CaseIterable, Identifiable {
     case home = "Home"
     case accounts = "Accounts"
-    case recurring = "Recurring"
-    case transactions = "Transactions"
     case settings = "Settings"
-    
     var id: String { rawValue }
-    
     var icon: String {
         switch self {
         case .home: return "house.fill"
         case .accounts: return "wallet.pass.fill"
-        case .recurring: return "repeat"
-        case .transactions: return "list.bullet"
         case .settings: return "gearshape.fill"
         }
     }
 }
 
-struct SidebarLayout: View {
+struct MacLayout: View {
     @State private var selected: SidebarItem? = .home
-    @State private var showAddTx = false
     
     var body: some View {
         NavigationSplitView {
@@ -155,273 +310,38 @@ struct SidebarLayout: View {
             }
             .listStyle(.sidebar)
             .navigationTitle("₪ Gelt")
-            .scrollContentBackground(.hidden)
-            .background(Theme.bg)
             .tint(Theme.gold)
-            .toolbar {
-                #if os(macOS)
-                ToolbarItem(placement: .automatic) {
-                    Button {
-                        showAddTx = true
-                    } label: {
-                        Image(systemName: "plus")
-                    }
-                    .tint(Theme.gold)
-                }
-                #endif
-            }
         } detail: {
             Group {
                 switch selected {
                 case .home: HomeView()
                 case .accounts: AccountsView()
-                case .recurring: RecurringDetailView()
-                case .transactions: TransactionsDetailView()
                 case .settings: SettingsView()
                 case .none: HomeView()
                 }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Theme.bg)
         }
         .tint(Theme.gold)
-        .sheet(isPresented: $showAddTx) { AddTransactionSheet() }
-        .onReceive(NotificationCenter.default.publisher(for: .geltNewTransaction)) { _ in
-            showAddTx = true
-        }
+        .background(Theme.bg)
     }
 }
 
-// ─── Standalone views for sidebar detail ────────────
-
-struct RecurringDetailView: View {
-    @EnvironmentObject var store: DataStore
-    @State private var showAdd = false
-    
-    var body: some View {
-        ScrollView(.vertical, showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("RECURRING")
-                            .font(.custom("Cormorant Garamond", size: 9).weight(.semibold))
-                            .tracking(3)
-                            .foregroundColor(Theme.gold)
-                        Text("Bills & Paychecks")
-                            .font(.custom("Cormorant Garamond", size: 28).weight(.bold))
-                            .foregroundColor(Theme.cream)
-                    }
-                    Spacer()
-                    Button { showAdd = true } label: {
-                        Label("Add", systemImage: "plus")
-                    }
-                    .buttonStyle(GhostButtonStyle())
-                }
-                .padding(.bottom, 8)
-                
-                // Income
-                let incomeItems = store.data.recurring.filter { $0.isIncome }
-                if !incomeItems.isEmpty {
-                    SectionLabel(text: "INCOME")
-                    ForEach(incomeItems) { rec in
-                        RecurringRow(rec: rec)
-                    }
-                }
-                
-                // Expenses
-                let expenseItems = store.data.recurring.filter { !$0.isIncome }.sorted { $0.daysUntil < $1.daysUntil }
-                if !expenseItems.isEmpty {
-                    SectionLabel(text: "EXPENSES")
-                    ForEach(expenseItems) { rec in
-                        RecurringRow(rec: rec)
-                    }
-                }
-                
-                if store.data.recurring.isEmpty {
-                    GeltCard {
-                        Text("No recurring items yet")
-                            .font(.system(size: 13))
-                            .foregroundColor(Theme.faint)
-                            .italic()
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 20)
-                    }
-                }
-                
-                Spacer(minLength: 40)
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, 12)
-        }
-        .sheet(isPresented: $showAdd) { AddRecurringSheet() }
-    }
-}
-
-struct RecurringRow: View {
-    @EnvironmentObject var store: DataStore
-    let rec: RecurringItem
-    
-    var body: some View {
-        GeltCard {
-            HStack(spacing: 12) {
-                Text(rec.icon).font(.system(size: 22))
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(rec.name)
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(Theme.cream)
-                    HStack(spacing: 6) {
-                        Pill(text: rec.frequency.rawValue)
-                        if rec.daysUntil >= 0 && rec.daysUntil <= 7 {
-                            Pill(text: rec.daysUntil == 0 ? "Today" : rec.daysUntil == 1 ? "Tomorrow" : "\(rec.daysUntil)d", gold: true)
-                        } else {
-                            DimText(text: shortDateLabel(rec.nextDate))
-                        }
-                    }
-                }
-                Spacer()
-                Text("\(rec.isIncome ? "+" : "-")\(rec.amount.money)")
-                    .font(.system(size: 16, weight: .bold, design: .monospaced))
-                    .foregroundColor(rec.isIncome ? Theme.green : Theme.red)
-                
-                Button {
-                    Haptics.tap()
-                    store.markPaid(rec)
-                } label: {
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundColor(Theme.gold)
-                        .padding(8)
-                        .background(Theme.goldDim)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                }
-                
-                Button { store.deleteRecurring(rec.id) } label: {
-                    Image(systemName: "trash")
-                        .font(.system(size: 11))
-                        .foregroundColor(Theme.faint)
-                }
-            }
-        }
-    }
-}
-
-struct TransactionsDetailView: View {
-    @EnvironmentObject var store: DataStore
-    @State private var viewMonth = Date()
-    @State private var showAdd = false
-    @State private var showCSV = false
-    
-    private var mk: String { monthKeyFor(viewMonth) }
-    
-    var body: some View {
-        ScrollView(.vertical, showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("TRANSACTIONS")
-                            .font(.custom("Cormorant Garamond", size: 9).weight(.semibold))
-                            .tracking(3)
-                            .foregroundColor(Theme.gold)
-                        Text(monthLabel(for: viewMonth))
-                            .font(.custom("Cormorant Garamond", size: 28).weight(.bold))
-                            .foregroundColor(Theme.cream)
-                    }
-                    Spacer()
-                    HStack(spacing: 8) {
-                        Button { shiftMonth(-1) } label: { Image(systemName: "chevron.left").foregroundColor(Theme.dim) }
-                        Button { shiftMonth(1) } label: { Image(systemName: "chevron.right").foregroundColor(Theme.dim) }
-                        Button { showCSV = true } label: { Label("Import", systemImage: "arrow.up.doc") }.buttonStyle(GhostButtonStyle())
-                        Button { showAdd = true } label: { Label("Add", systemImage: "plus") }.buttonStyle(GhostButtonStyle())
-                    }
-                }
-                .padding(.bottom, 8)
-                
-                let txs = store.transactions(for: mk).sorted { $0.date > $1.date }
-                
-                if txs.isEmpty {
-                    GeltCard {
-                        Text("No transactions this month")
-                            .font(.system(size: 13))
-                            .foregroundColor(Theme.faint)
-                            .italic()
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 20)
-                    }
-                }
-                
-                ForEach(txs) { tx in
-                    GeltCard {
-                        HStack(spacing: 10) {
-                            Text(tx.icon).font(.system(size: 18))
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(tx.note.isEmpty ? "—" : tx.note)
-                                    .font(.system(size: 13, weight: .medium))
-                                    .foregroundColor(Theme.cream)
-                                    .lineLimit(1)
-                                HStack(spacing: 6) {
-                                    Pill(text: tx.category)
-                                    DimText(text: shortDateLabel(tx.date), size: 10)
-                                }
-                            }
-                            Spacer()
-                            Text(tx.amount.money)
-                                .font(.system(size: 14, weight: .bold, design: .monospaced))
-                                .foregroundColor(tx.category == "Income" ? Theme.green : Theme.cream)
-                            
-                            Button { store.deleteTransaction(tx.id) } label: {
-                                Image(systemName: "trash")
-                                    .font(.system(size: 11))
-                                    .foregroundColor(Theme.faint)
-                            }
-                        }
-                    }
-                }
-                
-                Spacer(minLength: 40)
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, 12)
-        }
-        .sheet(isPresented: $showAdd) { AddTransactionSheet() }
-        .sheet(isPresented: $showCSV) { CSVImportSheet() }
-    }
-    
-    private func shiftMonth(_ delta: Int) {
-        viewMonth = Calendar.current.date(byAdding: .month, value: delta, to: viewMonth) ?? viewMonth
-    }
-}
-
-// ═══════════════════════════════════════════════════
-//  Haptics
-// ═══════════════════════════════════════════════════
+// ═══ Haptics ═══════════════════════════════════════
 
 struct Haptics {
-    static func tap() {
-        #if os(iOS)
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-        #endif
-    }
-    
-    static func success() {
-        #if os(iOS)
-        UINotificationFeedbackGenerator().notificationOccurred(.success)
-        #endif
-    }
-    
-    static func warning() {
-        #if os(iOS)
-        UINotificationFeedbackGenerator().notificationOccurred(.warning)
-        #endif
-    }
-    
-    static func error() {
-        #if os(iOS)
-        UINotificationFeedbackGenerator().notificationOccurred(.error)
-        #endif
-    }
-    
-    static func selection() {
-        #if os(iOS)
-        UISelectionFeedbackGenerator().selectionChanged()
-        #endif
-    }
+    #if os(iOS)
+    static func tap() { UIImpactFeedbackGenerator(style: .light).impactOccurred() }
+    static func success() { UINotificationFeedbackGenerator().notificationOccurred(.success) }
+    static func warning() { UINotificationFeedbackGenerator().notificationOccurred(.warning) }
+    static func error() { UINotificationFeedbackGenerator().notificationOccurred(.error) }
+    static func selection() { UISelectionFeedbackGenerator().selectionChanged() }
+    #else
+    static func tap() {}
+    static func success() {}
+    static func warning() {}
+    static func error() {}
+    static func selection() {}
+    #endif
 }
